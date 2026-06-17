@@ -1,0 +1,12 @@
+hostname = "agent.csail.mit.edu"
+fixed_ip = "128.52.131.32"
+
+image_id = "4c5437a3-4564-41c0-8cdc-66c6b6b20284"
+
+admin_cidr = "128.52.128.31/32"
+
+flavor_name = "ups.2c2g"
+
+ssh_authorized_keys = [
+        "ssh-ed25519 AAAAA my-ssh-key",
+]

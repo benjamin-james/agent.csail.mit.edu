@@ -1,0 +1,53 @@
+#cloud-config
+output:
+  all: "| tee -a /var/log/cloud-init-output.log"
+
+ssh_authorized_keys:
+%{ for key in ssh_authorized_keys ~}
+  - ${key}
+%{ endfor ~}
+
+package_update: true
+packages:
+  - openssh-server
+  - ca-certificates
+  - curl
+  - gnupg
+  - debian-keyring
+  - debian-archive-keyring
+  - apt-transport-https
+
+write_files:
+  - path: /root/Caddyfile.agent
+    permissions: "0644"
+    content: |
+      ${hostname} {
+        respond "hello from OpenStack + WebDNS + TLS"
+      }
+
+runcmd:
+  # Make sshd explicit.
+  - systemctl enable ssh
+  - systemctl restart ssh
+  - systemctl status ssh --no-pager || true
+  - ss -lntp || true
+
+  # Install Caddy repo.
+  - curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+  - curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' > /etc/apt/sources.list.d/caddy-stable.list
+  - apt-get update
+
+  # Noninteractive install avoids dpkg conffile prompts.
+  - DEBIAN_FRONTEND=noninteractive apt-get install -y -o Dpkg::Options::="--force-confold" caddy
+
+  # Now overwrite the package's Caddyfile.
+  - cp /root/Caddyfile.agent /etc/caddy/Caddyfile
+  - caddy validate --config /etc/caddy/Caddyfile || true
+  - systemctl enable caddy
+  - systemctl restart caddy
+  - systemctl status caddy --no-pager || true
+  - ss -lntp || true
+
+  - echo "cloud-init completed hello-caddy setup" > /var/log/hello-caddy-ready.log
+
+

@@ -1,0 +1,37 @@
+# Local env / secrets
+.envrc
+.env
+*.env
+
+# Terraform/OpenTofu local state
+*.tfstate
+*.tfstate.*
+terraform.tfstate
+terraform.tfstate.backup
+
+# Provider/plugin/cache directory
+.terraform/
+.tofu/
+
+# Variable values; often contain hostnames, CIDRs, image IDs, sometimes secrets
+*.tfvars
+*.tfvars.json
+
+# Plans can contain sensitive resolved values
+*.tfplan
+tfplan
+plan.out
+
+# Crash/debug logs
+crash.log
+crash.*.log
+
+# Local override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Local CLI config, if you create one in the repo
+.terraformrc
+terraform.rc

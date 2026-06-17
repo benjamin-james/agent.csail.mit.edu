@@ -1,0 +1,4 @@
+* agent.csail.mit.edu
+
+Copy infra/terraform.tfvars.example to infra/terraform.tfvars
+Export OS_CLOUD and OS_PASSWORD in .envrc
