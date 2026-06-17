@@ -12,16 +12,16 @@ variable "image_id" {
 
 variable "flavor_name" {
   type    = string
-  default = "ups.1c2g"
-}
-
-variable "ssh_public_key_path" {
-  type    = string
-  default = "~/.ssh/id_ed25519.pub"
+  default = "ups.2c2g"
 }
 
 variable "admin_cidr" {
   type = string
+}
+
+variable "data_volume_size_gb" {
+  type    = number
+  default = 20
 }
 
 variable "ssh_authorized_keys" {
