@@ -1,4 +1,4 @@
-- name: Configure minimal Caddy server
+- name: ForgeJo setup
   hosts: web
   become: true
 
@@ -149,6 +149,80 @@
         cmd: docker compose up -d
         chdir: /opt/forgejo
       changed_when: true
+
+    - name: Create Forgejo backup directory
+      ansible.builtin.file:
+        path: /srv/data/forgejo/backups
+        state: directory
+        owner: root
+        group: root
+        mode: "0750"
+
+    - name: Install Forgejo backup script
+      ansible.builtin.copy:
+        dest: /usr/local/sbin/forgejo-backup
+        owner: root
+        group: root
+        mode: "0750"
+        content: |
+          #!/usr/bin/env bash
+          set -euo pipefail
+          BACKUP_DIR="/srv/data/forgejo/backups"
+          TS="$(date -u +%Y%m%dT%H%M%SZ)"
+          TMP="/tmp/forgejo-dump-${TS}.zip"
+          OUT="${BACKUP_DIR}/forgejo-dump-${TS}.zip"
+
+          mkdir -p "$BACKUP_DIR"
+
+          docker exec --user git forgejo \
+            forgejo dump \
+              --file "$TMP" \
+              --tempdir /tmp
+
+          docker cp "forgejo:${TMP}" "$OUT"
+          docker exec --user git forgejo rm -f "$TMP"
+
+          find "$BACKUP_DIR" -type f -name 'forgejo-dump-*.zip' -mtime +14 -delete
+
+          echo "Wrote $OUT"
+
+    - name: Install Forgejo backup service
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/forgejo-backup.service
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Backup Forgejo
+
+          [Service]
+          Type=oneshot
+          ExecStart=/usr/local/sbin/forgejo-backup
+
+    - name: Install Forgejo backup timer
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/forgejo-backup.timer
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Run Forgejo backup daily
+
+          [Timer]
+          OnCalendar=*-*-* 04:30:00
+          Persistent=true
+
+          [Install]
+          WantedBy=timers.target
+
+    - name: Enable Forgejo backup timer
+      ansible.builtin.systemd:
+        name: forgejo-backup.timer
+        enabled: true
+        state: started
+        daemon_reload: true
 
   handlers:
     - name: Reload Caddy
