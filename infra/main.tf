@@ -55,6 +55,7 @@ resource "openstack_compute_instance_v2" "hello" {
   image_id        = var.image_id
   flavor_name     = var.flavor_name
   security_groups = [openstack_networking_secgroup_v2.hello.name]
+  config_drive    = true
 
   network {
     uuid        = data.openstack_networking_network_v2.inet.id

@@ -1,0 +1,109 @@
+- name: Configure minimal Caddy server
+  hosts: web
+  become: true
+
+  vars:
+    caddy_hostname: agent.csail.mit.edu
+
+    data_device: /dev/vdb
+    data_label: AGENT_DATA
+    data_mount: /srv/data
+
+  tasks:
+    - name: Install base packages
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+          - debian-keyring
+          - debian-archive-keyring
+          - apt-transport-https
+        state: present
+        update_cache: true
+
+    - name: Ensure persistent mountpoint exists
+      ansible.builtin.file:
+        path: "{{ data_mount }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Check whether labeled filesystem already exists
+      ansible.builtin.command: blkid -L {{ data_label }}
+      register: labeled_disk
+      changed_when: false
+      failed_when: false
+
+    - name: Check whether candidate data device already has a filesystem
+      ansible.builtin.command: blkid {{ data_device }}
+      register: candidate_blkid
+      changed_when: false
+      failed_when: false
+      when: labeled_disk.rc != 0
+
+    - name: Refuse to format an already-formatted device with the wrong label
+      ansible.builtin.fail:
+        msg: "{{ data_device }} already has a filesystem but not label {{ data_label }}. Inspect manually with lsblk -f."
+      when:
+        - labeled_disk.rc != 0
+        - candidate_blkid.rc == 0
+
+    - name: Create ext4 filesystem with label
+      community.general.filesystem:
+        fstype: ext4
+        dev: "{{ data_device }}"
+        opts: "-L {{ data_label }}"
+      when:
+        - labeled_disk.rc != 0
+        - candidate_blkid.rc != 0
+
+    - name: Mount persistent volume by label
+      ansible.posix.mount:
+        path: "{{ data_mount }}"
+        src: "LABEL={{ data_label }}"
+        fstype: ext4
+        opts: defaults,nofail
+        state: mounted
+
+    - name: Install Caddy apt key
+      ansible.builtin.shell: |
+        set -e
+        curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' \
+          | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+      args:
+        creates: /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+
+    - name: Install Caddy apt source
+      ansible.builtin.get_url:
+        url: https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt
+        dest: /etc/apt/sources.list.d/caddy-stable.list
+        mode: "0644"
+
+    - name: Install Caddy
+      ansible.builtin.apt:
+        name: caddy
+        state: present
+        update_cache: true
+
+    - name: Configure Caddy
+      ansible.builtin.template:
+        src: templates/Caddyfile.j2
+        dest: /etc/caddy/Caddyfile
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reload Caddy
+
+    - name: Enable and start Caddy
+      ansible.builtin.systemd:
+        name: caddy
+        enabled: true
+        state: started
+
+  handlers:
+    - name: Reload Caddy
+      ansible.builtin.systemd:
+        name: caddy
+        state: reloaded

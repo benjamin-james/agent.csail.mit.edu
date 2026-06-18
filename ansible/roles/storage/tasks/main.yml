@@ -1,0 +1,56 @@
+# ansible/roles/storage/tasks/main.yml
+- name: Ensure mountpoint exists
+  ansible.builtin.file:
+    path: "{{ forgejo_data_mount }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Check if labeled Forgejo filesystem already exists
+  ansible.builtin.command: blkid -L {{ forgejo_data_label }}
+  register: labeled_disk
+  changed_when: false
+  failed_when: false
+
+- name: Check if candidate data device has a filesystem
+  ansible.builtin.command: blkid {{ forgejo_data_device }}
+  register: candidate_blkid
+  changed_when: false
+  failed_when: false
+  when: labeled_disk.rc != 0
+
+- name: Refuse to format candidate disk if it already has a filesystem but wrong label
+  ansible.builtin.fail:
+    msg: "{{ forgejo_data_device }} already has a filesystem but not label {{ forgejo_data_label }}. Inspect manually."
+  when:
+    - labeled_disk.rc != 0
+    - candidate_blkid.rc == 0
+
+- name: Create ext4 filesystem with label
+  community.general.filesystem:
+    fstype: ext4
+    dev: "{{ forgejo_data_device }}"
+    opts: "-L {{ forgejo_data_label }}"
+  when:
+    - labeled_disk.rc != 0
+    - candidate_blkid.rc != 0
+
+- name: Mount Forgejo data volume by label
+  ansible.posix.mount:
+    path: "{{ forgejo_data_mount }}"
+    src: "LABEL={{ forgejo_data_label }}"
+    fstype: ext4
+    opts: defaults,nofail
+    state: mounted
+
+- name: Create Forgejo persistent directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "1000"
+    group: "1000"
+    mode: "0755"
+  loop:
+    - "{{ forgejo_data_mount }}/data"
+    - "{{ forgejo_data_mount }}/backups"

@@ -1,7 +1,7 @@
 hostname = "agent.csail.mit.edu"
 fixed_ip = "128.52.131.32"
 
-image_id = "4c5437a3-4564-41c0-8cdc-66c6b6b20284"
+image_id = "7774057b-50a3-4a93-aaed-687e42e07d53"
 
 admin_cidr = "128.52.128.31/32"
 

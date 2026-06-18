@@ -1,4 +1,20 @@
 * agent.csail.mit.edu
 
-Copy infra/terraform.tfvars.example to infra/terraform.tfvars
-Export OS_CLOUD and OS_PASSWORD in .envrc
+Copy =infra/terraform.tfvars.example= to =infra/terraform.tfvars= and add SSH keys
+
+Export =OS_CLOUD= and =OS_PASSWORD= in .envrc
+
+** OpenTofu setup
+#+begin_src sh
+  cd infra/
+  tofu init
+  tofu plan
+  tofu apply
+#+end_src
+** Ansible setup
+#+begin_src sh
+  cd ansible/
+  ansible web -m ping
+  ansible-galaxy collection install -r requirements.yml
+  ansible-playbook site.yml
+#+end_src
