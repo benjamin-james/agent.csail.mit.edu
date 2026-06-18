@@ -102,6 +102,54 @@
         enabled: true
         state: started
 
+    - name: Install Docker and Compose plugin
+      ansible.builtin.apt:
+        name:
+          - docker.io
+          - docker-compose-v2
+        state: present
+        update_cache: true
+
+    - name: Enable and start Docker
+      ansible.builtin.systemd:
+        name: docker
+        enabled: true
+        state: started
+
+    - name: Create Forgejo persistent directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "1000"
+        group: "1000"
+        mode: "0755"
+      loop:
+        - "{{ data_mount }}/forgejo"
+        - "{{ data_mount }}/forgejo/data"
+        - "{{ data_mount }}/forgejo/backups"
+
+    - name: Create Forgejo compose directory
+      ansible.builtin.file:
+        path: /opt/forgejo
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Write Forgejo compose file
+      ansible.builtin.template:
+        src: templates/forgejo-compose.yaml.j2
+        dest: /opt/forgejo/compose.yaml
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Start Forgejo
+      ansible.builtin.command:
+        cmd: docker compose up -d
+        chdir: /opt/forgejo
+      changed_when: true
+
   handlers:
     - name: Reload Caddy
       ansible.builtin.systemd:
