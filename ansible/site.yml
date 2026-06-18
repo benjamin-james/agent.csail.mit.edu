@@ -1,5 +1,5 @@
 - name: ForgeJo setup
-  hosts: web
+  hosts: forgejo
   become: true
 
   vars:

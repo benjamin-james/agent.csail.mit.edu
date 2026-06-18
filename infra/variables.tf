@@ -28,3 +28,12 @@ variable "ssh_authorized_keys" {
   description = "Public SSH keys allowed to log into the VM."
   type        = list(string)
 }
+
+variable "runners" {
+  type = map(object({
+    hostname  = string
+    fixed_ip  = string
+    flavor    = string
+    data_gb   = optional(number, 0)
+  }))
+}

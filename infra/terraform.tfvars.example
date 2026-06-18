@@ -16,13 +16,11 @@ runners = {
     hostname = "agent-runner-1.csail.mit.edu"
     fixed_ip = "128.52.132.222"
     flavor   = "ups.2c4g"
-    data_gb  = 32
   }
 
   runner2 = {
     hostname = "agent-runner-2.csail.mit.edu"
     fixed_ip = "128.52.132.246"
     flavor   = "ups.2c4g"
-    data_gb  = 32
   }
 }

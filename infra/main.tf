@@ -76,6 +76,9 @@ resource "openstack_compute_instance_v2" "agent" {
     hostname = var.hostname
     ssh_authorized_keys = var.ssh_authorized_keys
   })
+  depends_on = [
+    openstack_networking_secgroup_rule_v2.ssh
+  ]
 }
 
 
@@ -94,10 +97,57 @@ resource "openstack_compute_volume_attach_v2" "data" {
   volume_id   = openstack_blockstorage_volume_v3.data.id
 }
 
+resource "openstack_networking_secgroup_v2" "runner" {
+  name        = "forgejo-runner"
+  description = "Forgejo runner SSH-only ingress"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "runner_ssh" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 22
+  port_range_max    = 22
+  remote_ip_prefix  = var.admin_cidr
+  security_group_id = openstack_networking_secgroup_v2.runner.id
+}
+
+resource "openstack_compute_instance_v2" "runner" {
+  for_each = var.runners
+  name            = each.value.hostname
+  image_id        = var.image_id
+  flavor_name     = each.value.flavor
+  security_groups = [openstack_networking_secgroup_v2.runner.name]
+  config_drive    = true
+
+  network {
+    uuid        = data.openstack_networking_network_v2.inet.id
+    fixed_ip_v4 = each.value.fixed_ip
+  }
+
+  user_data = templatefile("${path.module}/cloud-init.yaml.tftpl", {
+    hostname            = each.value.hostname
+    ssh_authorized_keys = var.ssh_authorized_keys
+  })
+
+  depends_on = [
+    openstack_networking_secgroup_rule_v2.runner_ssh
+  ]
+}
+
 output "url" {
   value = "https://${var.hostname}"
 }
 
 output "ssh" {
   value = "ssh ubuntu@${var.hostname}"
+}
+
+output "runner_hosts" {
+  value = {
+    for k, r in var.runners : k => {
+      hostname = r.hostname
+      fixed_ip = r.fixed_ip
+    }
+  }
 }
