@@ -1,4 +1,23 @@
 services:
+  sglang-gateway:
+    image: lmsysorg/sgl-model-gateway:latest
+    container_name: sglang-gateway
+    restart: unless-stopped
+
+    command:
+      - --host
+      - 0.0.0.0
+      - --port
+      - "{{ sglang_gateway_port }}"
+      - --policy
+      - "{{ sglang_gateway_policy }}"
+      - --worker-urls
+{% for url in sglang_gateway_worker_urls %}
+      - "{{ url }}"
+{% endfor %}
+
+    ports:
+      - "127.0.0.1:{{ sglang_gateway_port }}:{{ sglang_gateway_port }}"
   forgejo:
     image: codeberg.org/forgejo/forgejo:15
     container_name: forgejo

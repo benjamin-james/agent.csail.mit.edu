@@ -9,6 +9,11 @@
     data_label: AGENT_DATA
     data_mount: /srv/data
 
+    sglang_gateway_port: 30000
+    sglang_gateway_worker_urls:
+      - "https://kellis-h200-1.csail.mit.edu/agent"
+    sglang_gateway_policy: cache_aware
+
   tasks:
     - name: Install base packages
       ansible.builtin.apt:
@@ -143,12 +148,13 @@
         owner: root
         group: root
         mode: "0644"
+      notify: Restart compose stack
 
     - name: Start Forgejo
       ansible.builtin.command:
         cmd: docker compose up -d
         chdir: /opt/forgejo
-      changed_when: true
+      changed_when: false
 
     - name: Create Forgejo backup directory
       ansible.builtin.file:
@@ -229,3 +235,7 @@
       ansible.builtin.systemd:
         name: caddy
         state: reloaded
+    - name: Restart compose stack
+      ansible.builtin.command:
+        cmd: docker compose up -d
+        chdir: /opt/forgejo

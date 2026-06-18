@@ -5,8 +5,24 @@ image_id = "7774057b-50a3-4a93-aaed-687e42e07d53"
 
 admin_cidr = "128.52.128.31/32"
 
-flavor_name = "ups.2c2g"
+flavor_name = "ups.2c4g"
 
 ssh_authorized_keys = [
         "ssh-ed25519 AAAAA my-ssh-key",
 ]
+
+runners = {
+  runner1 = {
+    hostname = "agent-runner-1.csail.mit.edu"
+    fixed_ip = "128.52.132.222"
+    flavor   = "ups.2c4g"
+    data_gb  = 32
+  }
+
+  runner2 = {
+    hostname = "agent-runner-2.csail.mit.edu"
+    fixed_ip = "128.52.132.246"
+    flavor   = "ups.2c4g"
+    data_gb  = 32
+  }
+}
