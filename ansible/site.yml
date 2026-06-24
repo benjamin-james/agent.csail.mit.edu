@@ -239,3 +239,118 @@
       ansible.builtin.command:
         cmd: docker compose up -d
         chdir: /opt/forgejo
+
+
+- name: Forgejo runner setup
+  hosts: runners
+  become: true
+
+  vars:
+    forgejo_url: https://agent.csail.mit.edu
+    forgejo_host: agent.csail.mit.edu
+    runner_image: data.forgejo.org/forgejo/runner:12
+    runner_config_dir: /opt/forgejo-runner
+    runner_data_dir: /var/lib/forgejo-runner
+    runner_scope: ""
+    runner_capacity: 1
+    runner_labels:
+      - "docker:docker://docker.io/library/buildpack-deps:trixie-scm"
+      - "python:docker://docker.io/library/python:3.13-trixie"
+      - "go:docker://docker.io/library/golang:1.26-trixie"
+      - "node:docker://docker.io/library/node:22-trixie"
+
+  tasks:
+    - name: Install Podman and Compose plugin
+      ansible.builtin.apt:
+        name:
+          - podman
+          - docker-compose-v2
+        state: present
+        update_cache: true
+
+    - name: Enable and start Podman socket
+      ansible.builtin.systemd:
+        name: podman.socket
+        enabled: true
+        state: started
+        daemon_reload: true
+
+    - name: Create runner compose directory
+      ansible.builtin.file:
+        path: "{{ runner_config_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Create runner data directory
+      ansible.builtin.file:
+        path: "{{ runner_data_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Create runner cache directory
+      ansible.builtin.file:
+        path: "{{ runner_data_dir }}/.cache"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Check if runner is already registered
+      ansible.builtin.stat:
+        path: "{{ runner_data_dir }}/runner-config.yml"
+      register: runner_config_file
+
+    - name: Generate registration secret
+      ansible.builtin.command: openssl rand -hex 20
+      register: runner_secret
+      changed_when: false
+      when: not runner_config_file.stat.exists
+
+    - name: Register runner on Forgejo (offline registration)
+      ansible.builtin.command:
+        cmd: >-
+          docker exec --user git forgejo forgejo forgejo-cli actions register
+          --name {{ inventory_hostname_short }}
+          {{ '--scope ' ~ runner_scope if runner_scope else '' }}
+          --secret {{ runner_secret.stdout }}
+      delegate_to: "{{ forgejo_host }}"
+      register: runner_registration
+      when: not runner_config_file.stat.exists
+
+    - name: Set runner registration facts
+      ansible.builtin.set_fact:
+        runner_uuid: "{{ runner_registration.stdout_lines | last | trim }}"
+        runner_token: "{{ runner_secret.stdout }}"
+      when: not runner_config_file.stat.exists
+
+    - name: Show runner registration
+      ansible.builtin.debug:
+        msg: "Runner '{{ inventory_hostname_short }}' registered — UUID {{ runner_uuid }}"
+      when: not runner_config_file.stat.exists
+
+    - name: Write runner config
+      ansible.builtin.template:
+        src: templates/runner-config.yaml.j2
+        dest: "{{ runner_data_dir }}/runner-config.yml"
+        owner: root
+        group: root
+        mode: "0640"
+      when: not runner_config_file.stat.exists
+
+    - name: Write runner compose file
+      ansible.builtin.template:
+        src: templates/runner-compose.yaml.j2
+        dest: "{{ runner_config_dir }}/compose.yaml"
+        owner: root
+        group: root
+        mode: "0640"
+
+    - name: Start runner
+      ansible.builtin.command:
+        cmd: podman compose up -d
+        chdir: "{{ runner_config_dir }}"
+      changed_when: false

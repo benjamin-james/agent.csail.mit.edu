@@ -1,0 +1,44 @@
+# Forgejo Runner configuration
+# Managed by ansible — do not edit manually
+
+log:
+  level: info
+
+runner:
+  capacity: {{ runner_capacity | default(1) }}
+  timeout: 3h
+  insecure: false
+  fetch_timeout: 5s
+  fetch_interval: 2s
+  labels:
+{% for label in runner_labels | default([
+  'docker:docker://docker.io/library/buildpack-deps:trixie-scm',
+  'python:docker://docker.io/library/python:3.13-trixie',
+  'go:docker://docker.io/library/golang:1.26-trixie',
+  'node:docker://docker.io/library/node:22-trixie'
+]) %}
+    - {{ label }}
+{% endfor %}
+
+server:
+  connections:
+    forgejo:
+      url: {{ forgejo_url }}
+      uuid: {{ runner_uuid }}
+      token: {{ runner_token }}
+
+container:
+  network: ""
+  privileged: false
+  options:
+  workdir_parent: /data
+  valid_volumes: []
+  enable_ipv6: false
+
+host:
+  workdir_parent: /data
+
+cache:
+  enabled: true
+  dir: ""
+  host: ""

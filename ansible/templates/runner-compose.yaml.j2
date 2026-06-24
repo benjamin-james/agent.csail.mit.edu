@@ -1,0 +1,12 @@
+services:
+  runner:
+    image: {{ runner_image }}
+    container_name: forgejo-runner
+    user: "0:0"
+    environment:
+      DOCKER_HOST: unix:///run/podman/podman.sock
+    volumes:
+      - {{ runner_data_dir }}:/data
+      - /run/podman/podman.sock:/run/podman/podman.sock
+    restart: unless-stopped
+    command: forgejo-runner daemon --config /data/runner-config.yml
