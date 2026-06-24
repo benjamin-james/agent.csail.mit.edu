@@ -12,10 +12,10 @@ runner:
   fetch_interval: 2s
   labels:
 {% for label in runner_labels | default([
-  'docker:docker://docker.io/library/buildpack-deps:trixie-scm',
-  'python:docker://docker.io/library/python:3.13-trixie',
-  'go:docker://docker.io/library/golang:1.26-trixie',
-  'node:docker://docker.io/library/node:22-trixie'
+  'default:docker://docker.io/library/buildpack-deps:trixie-scm',
+  'python:docker://docker.io/library/python:trixie',
+  'go:docker://docker.io/library/golang:trixie',
+  'node:docker://docker.io/library/node:trixie'
 ]) %}
     - {{ label }}
 {% endfor %}

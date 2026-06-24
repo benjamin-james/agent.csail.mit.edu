@@ -254,10 +254,10 @@
     runner_scope: ""
     runner_capacity: 1
     runner_labels:
-      - "docker:docker://docker.io/library/buildpack-deps:trixie-scm"
-      - "python:docker://docker.io/library/python:3.13-trixie"
-      - "go:docker://docker.io/library/golang:1.26-trixie"
-      - "node:docker://docker.io/library/node:22-trixie"
+      - "default:docker://docker.io/library/buildpack-deps:trixie-scm"
+      - "python:docker://docker.io/library/python:trixie"
+      - "go:docker://docker.io/library/golang:trixie"
+      - "node:docker://docker.io/library/node:trixie"
 
   tasks:
     - name: Install Podman and Compose plugin
@@ -304,6 +304,18 @@
         path: "{{ runner_data_dir }}/runner-config.yml"
       register: runner_config_file
 
+    - name: Read existing runner config
+      ansible.builtin.slurp:
+        src: "{{ runner_data_dir }}/runner-config.yml"
+      when: runner_config_file.stat.exists
+      register: existing_runner_config
+
+    - name: Preserve runner registration facts from existing config
+      ansible.builtin.set_fact:
+        runner_uuid: "{{ (existing_runner_config.content | b64decode | regex_findall('uuid:\\s*(\\S+)'))[0] }}"
+        runner_token: "{{ (existing_runner_config.content | b64decode | regex_findall('token:\\s*(\\S+)'))[0] }}"
+      when: runner_config_file.stat.exists
+
     - name: Generate registration secret
       ansible.builtin.command: openssl rand -hex 20
       register: runner_secret
@@ -339,7 +351,7 @@
         owner: root
         group: root
         mode: "0640"
-      when: not runner_config_file.stat.exists
+      notify: Restart runner
 
     - name: Write runner compose file
       ansible.builtin.template:
@@ -348,9 +360,21 @@
         owner: root
         group: root
         mode: "0640"
+      notify: Recreate runner
 
     - name: Start runner
       ansible.builtin.command:
         cmd: podman compose up -d
         chdir: "{{ runner_config_dir }}"
       changed_when: false
+
+  handlers:
+    - name: Restart runner
+      ansible.builtin.command:
+        cmd: podman compose restart
+        chdir: "{{ runner_config_dir }}"
+
+    - name: Recreate runner
+      ansible.builtin.shell:
+        cmd: podman compose pull && podman compose up -d
+        chdir: "{{ runner_config_dir }}"
