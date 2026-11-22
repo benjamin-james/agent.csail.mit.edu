@@ -1,7 +1,7 @@
 hostname = "agent.csail.mit.edu"
 fixed_ip = "128.52.131.32"
 
-image_id = "7774057b-50a3-4a93-aaed-687e42e07d53"
+image_id = "9eb45e35-a983-490b-87a1-2bf159257e19"
 
 admin_cidr = "128.0.0.0/8"
 
@@ -33,7 +33,7 @@ libvirt_runners = {
     hostname  = "agent-runner-3"
     ip        = "192.168.122.50"
     vcpu      = 4
-    memory_mb = 8192
+    memory_mb = 32768
     disk_gb   = 100
   }
 }
