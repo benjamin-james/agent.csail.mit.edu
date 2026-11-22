@@ -3,7 +3,7 @@ fixed_ip = "128.52.131.32"
 
 image_id = "7774057b-50a3-4a93-aaed-687e42e07d53"
 
-admin_cidr = "128.52.128.31/32"
+admin_cidr = "128.0.0.0/8"
 
 flavor_name = "ups.2c4g"
 

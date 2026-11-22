@@ -260,20 +260,19 @@
       - "node:docker://docker.io/library/node:trixie"
 
   tasks:
-    - name: Install Podman and Compose plugin
+    - name: Install Docker and Compose plugin
       ansible.builtin.apt:
         name:
-          - podman
+          - docker.io
           - docker-compose-v2
         state: present
         update_cache: true
 
-    - name: Enable and start Podman socket
+    - name: Enable and start Docker
       ansible.builtin.systemd:
-        name: podman.socket
+        name: docker
         enabled: true
         state: started
-        daemon_reload: true
 
     - name: Create runner compose directory
       ansible.builtin.file:
@@ -364,17 +363,17 @@
 
     - name: Start runner
       ansible.builtin.command:
-        cmd: podman compose up -d
+        cmd: docker compose up -d
         chdir: "{{ runner_config_dir }}"
       changed_when: false
 
   handlers:
     - name: Restart runner
       ansible.builtin.command:
-        cmd: podman compose restart
+        cmd: docker compose restart
         chdir: "{{ runner_config_dir }}"
 
     - name: Recreate runner
       ansible.builtin.shell:
-        cmd: podman compose pull && podman compose up -d
+        cmd: docker compose pull && docker compose up -d
         chdir: "{{ runner_config_dir }}"
