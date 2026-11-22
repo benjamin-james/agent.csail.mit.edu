@@ -37,3 +37,32 @@ variable "runners" {
     data_gb   = optional(number, 0)
   }))
 }
+
+variable "libvirt_hypervisor" {
+  description = "libvirt hypervisor host running the VMs."
+  type        = string
+  default     = "kellislab1.csail.mit.edu"
+}
+
+variable "libvirt_ssh_user" {
+  description = "SSH user Terraform uses to reach the libvirt daemon on the hypervisor."
+  type        = string
+  default     = "benjames"
+}
+
+variable "libvirt_base_image_url" {
+  description = "Cloud image the runner VMs are cloned from."
+  type        = string
+  default     = "https://cloud.debian.org/images/cloud/trixie/latest/debian-13-generic-amd64.qcow2"
+}
+
+variable "libvirt_runners" {
+  type = map(object({
+    hostname   = string
+    ip         = string
+    vcpu       = optional(number, 2)
+    memory_mb  = optional(number, 4096)
+    disk_gb    = optional(number, 60)
+  }))
+  default = {}
+}

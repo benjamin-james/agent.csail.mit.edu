@@ -16,13 +16,24 @@ runners = {
     hostname = "agent-runner-1.csail.mit.edu"
     fixed_ip = "128.52.132.222"
     flavor   = "ups.2c4g"
-    data_gb  = 100
+    data_gb  = 50
   }
 
   runner2 = {
     hostname = "agent-runner-2.csail.mit.edu"
     fixed_ip = "128.52.132.246"
     flavor   = "ups.2c4g"
-    data_gb  = 100
+    data_gb  = 50
+  }
+}
+
+# Runners on the kellislab1 libvirt hypervisor (default NAT network, 192.168.122.0/24)
+libvirt_runners = {
+  runner3 = {
+    hostname  = "agent-runner-3"
+    ip        = "192.168.122.50"
+    vcpu      = 4
+    memory_mb = 8192
+    disk_gb   = 100
   }
 }

@@ -261,13 +261,14 @@
       - "python:docker://docker.io/library/python:trixie"
       - "go:docker://docker.io/library/golang:trixie"
       - "node:docker://docker.io/library/node:trixie"
+    runner_compose_package: docker-compose-v2
 
   tasks:
-    - name: Install Docker and Compose plugin
+    - name: Install Docker and Compose
       ansible.builtin.apt:
         name:
           - docker.io
-          - docker-compose-v2
+          - "{{ runner_compose_package }}"
         state: present
         update_cache: true
 
