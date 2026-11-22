@@ -57,6 +57,12 @@ resource "libvirt_domain" "runner" {
   vcpu      = each.value.vcpu
   autostart = true
 
+  # expose the host CPU model/features (SSE4.2, AVX, ... x86-64-v2/v3) instead
+  # of qemu's conservative default, which lacks features some binaries require
+  cpu {
+    mode = "host-passthrough"
+  }
+
   cloudinit = libvirt_cloudinit_disk.runner[each.key].id
 
   network_interface {
