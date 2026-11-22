@@ -8,6 +8,8 @@ Export =OS_CLOUD= and =OS_PASSWORD= in .envrc
 #+begin_src sh
   cd infra/
   tofu init
+  ./tunnel.sh &
+  export TF_VAR_libvirt_uri='qemu+tcp://localhost:16509/system'
   tofu plan
   tofu apply
 #+end_src
