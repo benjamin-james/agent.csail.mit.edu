@@ -256,19 +256,13 @@
     runner_scratch_device: /dev/vdb
     runner_scratch_label: RUNNER_SCRATCH
     runner_scratch_mount: /srv/scratch
-    runner_labels:
-      - "default:docker://docker.io/library/buildpack-deps:trixie-scm"
-      - "python:docker://docker.io/library/python:trixie"
-      - "go:docker://docker.io/library/golang:trixie"
-      - "node:docker://docker.io/library/node:trixie"
-    runner_compose_package: docker-compose-v2
 
   tasks:
     - name: Install Docker and Compose
       ansible.builtin.apt:
         name:
           - docker.io
-          - "{{ runner_compose_package }}"
+          - "{{ runner_compose_package | default('docker-compose-v2') }}"
         state: present
         update_cache: true
 
