@@ -4,6 +4,10 @@ terraform {
       source  = "terraform-provider-openstack/openstack"
       version = "~> 3.4"
     }
+    libvirt = {
+      source = "dmacvicar/libvirt"
+      version = "~> 0.8.0"
+    }
   }
 }
 

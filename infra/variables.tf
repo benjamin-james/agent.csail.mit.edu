@@ -50,6 +50,12 @@ variable "libvirt_ssh_user" {
   default     = "benjames"
 }
 
+variable "libvirt_uri" {
+  description = "Override the libvirt connection URI, e.g. to tunnel through a local port (qemu+ssh://user@localhost:2222/system)."
+  type        = string
+  default     = ""
+}
+
 variable "libvirt_base_image_url" {
   description = "Cloud image the runner VMs are cloned from."
   type        = string
