@@ -253,6 +253,9 @@
     runner_data_dir: /var/lib/forgejo-runner
     runner_scope: ""
     runner_capacity: 1
+    runner_scratch_device: /dev/vdb
+    runner_scratch_label: RUNNER_SCRATCH
+    runner_scratch_mount: /srv/scratch
     runner_labels:
       - "default:docker://docker.io/library/buildpack-deps:trixie-scm"
       - "python:docker://docker.io/library/python:trixie"
@@ -273,6 +276,74 @@
         name: docker
         enabled: true
         state: started
+
+    - name: Check whether runner scratch device exists
+      ansible.builtin.stat:
+        path: "{{ runner_scratch_device }}"
+      register: runner_scratch_dev
+
+    - name: Ensure runner scratch mountpoint exists
+      ansible.builtin.file:
+        path: "{{ runner_scratch_mount }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      when: runner_scratch_dev.stat.exists
+
+    - name: Check whether labeled runner scratch filesystem already exists
+      ansible.builtin.command: blkid -L {{ runner_scratch_label }}
+      register: labeled_scratch
+      changed_when: false
+      failed_when: false
+      when: runner_scratch_dev.stat.exists
+
+    - name: Check whether runner scratch device already has a filesystem
+      ansible.builtin.command: blkid {{ runner_scratch_device }}
+      register: scratch_blkid
+      changed_when: false
+      failed_when: false
+      when:
+        - runner_scratch_dev.stat.exists
+        - labeled_scratch.rc != 0
+
+    - name: Refuse to format an already-formatted scratch device with the wrong label
+      ansible.builtin.fail:
+        msg: "{{ runner_scratch_device }} already has a filesystem but not label {{ runner_scratch_label }}. Inspect manually with lsblk -f."
+      when:
+        - runner_scratch_dev.stat.exists
+        - labeled_scratch.rc != 0
+        - scratch_blkid.rc == 0
+
+    - name: Create ext4 runner scratch filesystem with label
+      community.general.filesystem:
+        fstype: ext4
+        dev: "{{ runner_scratch_device }}"
+        opts: "-L {{ runner_scratch_label }}"
+      when:
+        - runner_scratch_dev.stat.exists
+        - labeled_scratch.rc != 0
+        - scratch_blkid.rc != 0
+
+    - name: Mount runner scratch volume by label
+      ansible.posix.mount:
+        path: "{{ runner_scratch_mount }}"
+        src: "LABEL={{ runner_scratch_label }}"
+        fstype: ext4
+        opts: defaults,nofail
+        state: mounted
+      when: runner_scratch_dev.stat.exists
+
+    - name: Point Docker at scratch volume
+      ansible.builtin.copy:
+        dest: /etc/docker/daemon.json
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          {"data-root": "{{ runner_scratch_mount }}/docker"}
+      when: runner_scratch_dev.stat.exists
+      notify: Restart Docker
 
     - name: Create runner compose directory
       ansible.builtin.file:
@@ -368,6 +439,11 @@
       changed_when: false
 
   handlers:
+    - name: Restart Docker
+      ansible.builtin.systemd:
+        name: docker
+        state: restarted
+
     - name: Restart runner
       ansible.builtin.command:
         cmd: docker compose restart

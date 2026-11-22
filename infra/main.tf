@@ -97,6 +97,25 @@ resource "openstack_compute_volume_attach_v2" "data" {
   volume_id   = openstack_blockstorage_volume_v3.data.id
 }
 
+resource "openstack_blockstorage_volume_v3" "runner_data" {
+  for_each = { for k, r in var.runners : k => r if r.data_gb > 0 }
+
+  name        = "${each.value.hostname}-data"
+  size        = each.value.data_gb
+  volume_type = "production"
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "openstack_compute_volume_attach_v2" "runner_data" {
+  for_each = openstack_blockstorage_volume_v3.runner_data
+
+  instance_id = openstack_compute_instance_v2.runner[each.key].id
+  volume_id   = each.value.id
+}
+
 resource "openstack_networking_secgroup_v2" "runner" {
   name        = "forgejo-runner"
   description = "Forgejo runner SSH-only ingress"
