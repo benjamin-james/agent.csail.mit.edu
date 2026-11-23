@@ -6,7 +6,7 @@ log:
 
 runner:
   capacity: {{ runner_capacity | default(1) }}
-  timeout: 3h
+  timeout: {{ runner_timeout | default('3h') }}
   insecure: false
   fetch_timeout: 5s
   fetch_interval: 2s

@@ -35,6 +35,8 @@ services:
 
       FORGEJO__database__DB_TYPE: "sqlite3"
 
+      FORGEJO__actions__ENDLESS_TASK_TIMEOUT: "24h"
+
     ports:
       - "127.0.0.1:3000:3000"
       - "2222:22"

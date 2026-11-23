@@ -1,4 +1,5 @@
 runner_compose_package: docker-compose
+runner_timeout: 24h
 
 runner_labels:
   - "large:docker://docker.io/library/buildpack-deps:trixie-scm"
